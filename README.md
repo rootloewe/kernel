@@ -13,16 +13,16 @@ Ein sauberes, sicheres und automatisiertes Bash-Skript für Debian- und basierte
 
 1. Erstelle die Skriptdatei auf deinem System:
    ```bash
-   vim clean-kernels.sh
+   vim kernel.sh
    ```
 2. Füge den Skriptinhalt in die Datei ein und speichere sie.
 3. Mache das Skript ausführbar:
    ```bash
-   chmod +x clean-kernels.sh
+   chmod +x kernel.sh
    ```
 4. Führe das Skript mit Root-Rechten aus:
    ```bash
-   sudo ./clean-kernels.sh
+   sudo ./kernel.sh
    ```
 
 ## 🛠️ Funktionsweise
