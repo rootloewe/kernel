@@ -6,35 +6,41 @@ if [ "$EUID" -ne 0 ]; then
   exit 1
 fi
 
-echo -e "\n=== Debian Kernel-Bereinigung  ==="
+echo -e "\n=== Debian Kernel-Bereinigung ==="
 
 # 1. Aktuell laufenden Kernel ermitteln
 CURRENT_KERNEL_VERSION=$(uname -r)
-echo -e "\nAktuell verwendeter Kernel: $CURRENT_KERNEL_VERSION"
-
-# Zugehöriges Paket des laufenden Kernels finden 
 CURRENT_PACKAGE=$(dpkg --list | grep -E "^ii\s+linux-image-[0-9]+" | awk '{print $2}' | grep "$CURRENT_KERNEL_VERSION")
 
-# Alle installierten linux-image-Pakete ermitteln
-INSTALLED_KERNELS=$(dpkg --list | grep -E "^ii\s+linux-image-[0-9]+" | awk '{print $2}')
+if [ -z "$CURRENT_PACKAGE" ]; then
+  echo "Fehler: Konnte das Paket des aktuellen Kernels nicht ermitteln."
+  exit 1
+fi
+
+echo -e "\nAktuell verwendeter Kernel: $CURRENT_KERNEL_VERSION"
+
+# Alle installierten Kernel-Pakete ermitteln (Meta-Paket ausschließen)
+INSTALLED_KERNELS=$(dpkg --list | grep -E "^ii\s+linux-image-([a-z0-9\.-]+)" | awk '{print $2}' | grep -v "linux-image-amd64$")
 
 if [ -z "$INSTALLED_KERNELS" ]; then
   echo "Keine Kernel-Pakete gefunden."
   exit 0
 fi
 
-# 2. Den ältesten oder den direkt vor dem aktuellen liegenden Kernel als Backup bestimmen:
-# Wir nehmen alle installierten Kernel OHNE den aktuellen, sortieren sie und nehmen den neuesten davon (den direkten Vorgänger)
-OLDER_KERNELS=$(echo "$INSTALLED_KERNELS" | grep -v "$CURRENT_PACKAGE" | sort -V)
-BACKUP_PACKAGE=$(echo "$OLDER_KERNELS" | tail -n 1)
-
-# Zu behaltende Kernel zusammenstellen
+# 2. Aktuellen Kernel fest als zu behalten setzen
 KEEP_KERNELS="$CURRENT_PACKAGE"
+
+# Nur offizielle Debian-Kernel (mit +deb) OHNE den aktuellen für die Backup-Suche heranziehen
+OLDER_DEBIAN_KERNELS=$(dpkg --list | grep -E "^ii\s+linux-image-[0-9]+\..*\+deb" | awk '{print $2}' | grep -v "$CURRENT_PACKAGE" | sort -V)
+BACKUP_PACKAGE=$(echo "$OLDER_DEBIAN_KERNELS" | tail -n 1)
+
+# Wenn ein Debian-Backup-Kernel existiert, diesen zur Behaltens-Liste hinzufügen
 if [ -n "$BACKUP_PACKAGE" ]; then
   KEEP_KERNELS="$KEEP_KERNELS $BACKUP_PACKAGE"
 fi
 
-echo -e "\nDiese Kernel werden behalten (Aktuell + ein Älterer):"
+echo -e "\nDiese Kernel werden behalten (Aktuell und ein Vorgänger):"
+echo " - $CURRENT_KERNEL_VERSION" | sed 's/linux-image-//'
 for k in $KEEP_KERNELS; do
   echo " - $k" | sed 's/linux-image-//'
 done
@@ -52,7 +58,8 @@ for kernel in $INSTALLED_KERNELS; do
     
     if [ "$KEEP" -eq 0 ]; then
         echo " - ${kernel#linux-image-}"
-        TO_REMOVE="$TO_REMOVE $kernel"
+        VERSION_TAG="${kernel#linux-image-}"
+        TO_REMOVE="$TO_REMOVE $kernel linux-headers-$VERSION_TAG"
     fi
 done
 
@@ -64,15 +71,18 @@ fi
 # Sicherheitsabfrage vor dem Löschen
 echo
 read -p "Möchtest du diese Kernel jetzt unwiderruflich löschen? (j/N): " choice
+echo
 case "$choice" in 
   j|J|yes|YES)
-    echo "Lösche alte Kernel..."
+    echo "Lösche alte Kernel und Header..."
     apt-get purge -y $TO_REMOVE
     
     echo "Bereinige nicht mehr benötigte Abhängigkeiten..."
     apt-get autoremove -y
     
     echo -e "\nFertig! Die Kernel-Bereinigung war erfolgreich."
+    echo -e "\n Installierte Kernel:"
+    dpkg -l | grep linux-image
     ;;
   *)
     echo "Abgebrochen. Es wurde nichts gelöscht."
