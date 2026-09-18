@@ -2,7 +2,7 @@
 
 # Sicherstellen, dass das Skript mit Root-Rechten ausgeführt wird
 if [ "$EUID" -ne 0 ]; then
-  echo "Fehler: Bitte führe dieses Skript mit Root-Rechten aus (sudo ./clean-kernels.sh)."
+  echo "Fehler: Bitte führe dieses Skript mit Root-Rechten aus (sudo ./kernel.sh)."
   exit 1
 fi
 
@@ -12,7 +12,7 @@ echo -e "\n=== Debian Kernel-Bereinigung  ==="
 CURRENT_KERNEL_VERSION=$(uname -r)
 echo -e "\nAktuell verwendeter Kernel: $CURRENT_KERNEL_VERSION"
 
-# Zugehöriges Paket des laufenden Kernels finden (z.B. linux-image-6.12.107+deb13-amd64)
+# Zugehöriges Paket des laufenden Kernels finden 
 CURRENT_PACKAGE=$(dpkg --list | grep -E "^ii\s+linux-image-[0-9]+" | awk '{print $2}' | grep "$CURRENT_KERNEL_VERSION")
 
 # Alle installierten linux-image-Pakete ermitteln
@@ -34,7 +34,7 @@ if [ -n "$BACKUP_PACKAGE" ]; then
   KEEP_KERNELS="$KEEP_KERNELS $BACKUP_PACKAGE"
 fi
 
-echo -e "\Diese Kernel werden behalten (Aktuell + ein Älterer):"
+echo -e "\nDiese Kernel werden behalten (Aktuell + ein Älterer):"
 for k in $KEEP_KERNELS; do
   echo " - $k" | sed 's/linux-image-//'
 done
@@ -62,6 +62,7 @@ if [ -z "$TO_REMOVE" ]; then
 fi
 
 # Sicherheitsabfrage vor dem Löschen
+echo
 read -p "Möchtest du diese Kernel jetzt unwiderruflich löschen? (j/N): " choice
 case "$choice" in 
   j|J|yes|YES)
