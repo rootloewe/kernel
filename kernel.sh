@@ -2,6 +2,7 @@
 
 if [ "$EUID" -ne 0 ]; then
   echo "Fehler: Bitte mit Root-Rechten ausführen (sudo ./kernel.sh)."
+  echo
   exit 1
 fi
 
@@ -9,7 +10,7 @@ echo -e "\n=== Erweiterte Kernel-Bereinigung ==="
 
 # 1. Aktuell laufenden Kernel ermitteln
 CURRENT_KERNEL=$(uname -r)
-echo -e "\nAktuell verwendeter Kernel: $CURRENT_KERNEL"
+echo -e "\n Verwendeter Kernel: $CURRENT_KERNEL"
 
 # 2. Alle Kernel-Dateien in /boot finden und sortieren
 # Wir extrahieren die Versionsnummern aus den vmlinuz-Dateien
@@ -76,6 +77,6 @@ case "$choice" in
     echo -e "\nFertig! Die Kernel-Bereinigung war erfolgreich."
     ;;
   *)
-    echo "Abgebrochen. Es wurde nichts gelöscht."
+    echo -e "\nAbgebrochen. Es wurde nichts gelöscht."
     ;;
 esac
